@@ -1,13 +1,15 @@
 const express = require("express");
-const Post = require("../models/Post");
-const authMiddleware = require("../middleware/authMiddleware");
-const Vote = require("../models/Vote");
-const User = require("../models/User");
-const Comment = require("../models/Comment");
-
 const router = express.Router();
 
-// Create Post
+const Post = require("../models/Post");
+const Vote = require("../models/Vote");
+const Comment = require("../models/Comment");
+const User = require("../models/User");
+
+const authMiddleware = require("../middleware/authMiddleware");
+
+
+// CREATE POST
 router.post("/", authMiddleware, async (req, res) => {
   try {
     const { title, content, tags } = req.body;
@@ -22,44 +24,68 @@ router.post("/", authMiddleware, async (req, res) => {
     await newPost.save();
 
     res.status(201).json(newPost);
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get All Posts
+
+// GET ALL POSTS (SMART FEED)
 router.get("/", async (req, res) => {
   try {
-    const posts = await Post.find()
-      .populate("author", "name email")
-      .sort({ createdAt: -1 });
 
-    res.json(posts);
+    const posts = await Post.find()
+      .populate("author", "name email reputation")
+      .sort({ score: -1, createdAt: -1 });
+
+    const postsWithComments = await Promise.all(
+      posts.map(async (post) => {
+        const commentCount = await Comment.countDocuments({ post: post._id });
+
+        return {
+          ...post.toObject(),
+          commentCount
+        };
+      })
+    );
+
+    res.json(postsWithComments);
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// UPVOTE
+
+// UPVOTE POST
 router.post("/:id/upvote", authMiddleware, async (req, res) => {
   try {
+
     const postId = req.params.id;
     const userId = req.user.id;
 
     const existingVote = await Vote.findOne({ user: userId, post: postId });
 
-    if (existingVote)
+    if (existingVote) {
       return res.status(400).json({ message: "Already voted" });
+    }
 
-    await Vote.create({ user: userId, post: postId, type: "upvote" });
+    await Vote.create({
+      user: userId,
+      post: postId,
+      type: "upvote"
+    });
 
     const post = await Post.findById(postId);
     post.upvotes += 1;
     post.score += 2;
+
     await post.save();
 
     const author = await User.findById(post.author);
     author.reputation += 5;
+
     await author.save();
 
     res.json({ message: "Upvoted successfully" });
@@ -69,26 +95,35 @@ router.post("/:id/upvote", authMiddleware, async (req, res) => {
   }
 });
 
-// DOWNVOTE
+
+// DOWNVOTE POST
 router.post("/:id/downvote", authMiddleware, async (req, res) => {
   try {
+
     const postId = req.params.id;
     const userId = req.user.id;
 
     const existingVote = await Vote.findOne({ user: userId, post: postId });
 
-    if (existingVote)
+    if (existingVote) {
       return res.status(400).json({ message: "Already voted" });
+    }
 
-    await Vote.create({ user: userId, post: postId, type: "downvote" });
+    await Vote.create({
+      user: userId,
+      post: postId,
+      type: "downvote"
+    });
 
     const post = await Post.findById(postId);
     post.downvotes += 1;
     post.score -= 1;
+
     await post.save();
 
     const author = await User.findById(post.author);
     author.reputation -= 2;
+
     await author.save();
 
     res.json({ message: "Downvoted successfully" });
@@ -98,9 +133,11 @@ router.post("/:id/downvote", authMiddleware, async (req, res) => {
   }
 });
 
+
 // ADD COMMENT
 router.post("/:id/comment", authMiddleware, async (req, res) => {
   try {
+
     const postId = req.params.id;
     const userId = req.user.id;
     const { content } = req.body;
@@ -111,9 +148,9 @@ router.post("/:id/comment", authMiddleware, async (req, res) => {
       content
     });
 
-    // increase post score slightly
     const post = await Post.findById(postId);
     post.score += 1;
+
     await post.save();
 
     res.status(201).json(comment);
@@ -123,17 +160,21 @@ router.post("/:id/comment", authMiddleware, async (req, res) => {
   }
 });
 
-// GET COMMENTS FOR A POST
+
+// GET COMMENTS FOR POST
 router.get("/:id/comments", async (req, res) => {
   try {
+
     const comments = await Comment.find({ post: req.params.id })
       .populate("author", "name email")
-      .sort({ score: -1, createdAt: -1 });
+      .sort({ createdAt: -1 });
 
     res.json(comments);
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 module.exports = router;
