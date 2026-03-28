@@ -169,5 +169,3 @@ This project is licensed under the [MIT License](LICENSE).
 - GitHub: [@SarathiKrish](https://github.com/SarathiKrish)
 
 ---
-
-<p align="center">Made with ❤️ for campus communities</p>
