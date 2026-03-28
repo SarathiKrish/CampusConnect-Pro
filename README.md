@@ -8,22 +8,6 @@
 
 ---
 
-## 📌 Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Scripts](#scripts)
-- [Screenshots](#screenshots)
-- [Contributing](#contributing)
-- [License](#license)
-- [Author](#author)
-
----
-
 ## 🌐 Overview
 
 **CampusConnect-Pro** is a centralized platform where students can connect with peers, share posts and updates, view profiles, and track activities and rankings. Built with a scalable client-server architecture, it demonstrates real-world full-stack development skills.
